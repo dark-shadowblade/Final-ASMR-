@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build:win": "electron-builder --win nsis --x64",
-    "test": "node --check main.js && node --check preload.js && node --check renderer.js"
+    "test": "node --check main.js && node --check preload.js && node --check renderer.js && node --check extension/background.js && node --check extension/content.js && node --check extension/options.js"
   },
   "devDependencies": {
     "electron": "^35.0.0",
