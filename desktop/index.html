@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Final ASMR</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#eef2ff;font:15px Segoe UI,Arial,sans-serif;min-height:100vh;display:grid;place-items:center}
+main{width:min(620px,calc(100% - 40px));padding:34px;border:1px solid #26334d;border-radius:20px;background:#111a2c;box-shadow:0 24px 80px #0007}
+h1{font-size:28px;margin:0 0 8px}p{color:#9eabc2;line-height:1.55;margin:0 0 24px}
+button{width:100%;border:0;border-radius:12px;padding:17px;background:#6d5dfc;color:white;font-size:17px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.profiles{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:24px 0}
+.profile{background:#17243a;border:1px solid #2b3b58;border-radius:10px;padding:13px 4px;text-align:center}
+.dot{width:9px;height:9px;background:#59677e;border-radius:50%;display:inline-block;margin-right:5px}.profile span{font-size:12px;color:#aebbd0}
+#status{font-size:13px;color:#b6c4da;min-height:22px;margin:12px 0}
+small{display:block;color:#71819d;line-height:1.5;margin-top:18px;overflow-wrap:anywhere}
+</style>
+</head>
+<body><main>
+<h1>Final ASMR</h1>
+<p>Open five separate Google Chrome windows. Each window has its own persistent browser profile and opens Google Flow.</p>
+<button id="launch">Open 5 Browsers</button>
+<div class="profiles">
+<div class="profile"><div>01</div><span id="s1"><i class="dot"></i>Ready</span></div>
+<div class="profile"><div>02</div><span id="s2"><i class="dot"></i>Ready</span></div>
+<div class="profile"><div>03</div><span id="s3"><i class="dot"></i>Ready</span></div>
+<div class="profile"><div>04</div><span id="s4"><i class="dot"></i>Ready</span></div>
+<div class="profile"><div>05</div><span id="s5"><i class="dot"></i>Ready</span></div>
+</div>
+<div id="status">Waiting for you.</div>
+<small>Profiles are saved locally and remain separate between launches. Sign in to each Google account yourself. No passwords are collected by this app.</small>
+<small id="path"></small>
+</main>
+<script src="renderer.js"></script>
+</body></html>
