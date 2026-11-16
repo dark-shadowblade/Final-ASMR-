@@ -1,76 +1,16 @@
-const $ = id => document.getElementById(id);
-let projects = {};
-let prompts = [];
-let activePage = "create";
-function nav(page) {
-  activePage = page;
-  $("createPage").hidden = page !== "create";
-  $("accountsPage").hidden = page !== "accounts";
-  document.querySelectorAll("[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-}
-document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => nav(el.dataset.page)));
-function status(message, bad = false) { $("status").textContent = message; $("status").style.color = bad ? "#ff8585" : "#b6c4da"; }
-function renderPrompts() {
-  $("promptList").replaceChildren();
-  prompts.forEach((value, index) => {
-    const wrap = document.createElement("label"); wrap.className = "prompt-card";
-    const title = document.createElement("span"); title.textContent = "PROMPT 0" + (index + 1) + " · ACCOUNT 0" + (index + 1);
-    const area = document.createElement("textarea"); area.rows = 5; area.value = value; area.dataset.index = index;
-    area.addEventListener("input", () => prompts[index] = area.value);
-    wrap.append(title, area); $("promptList").append(wrap);
-  });
-}
-function renderAccounts() {
-  $("accountList").replaceChildren();
-  for (let i = 1; i <= 5; i++) {
-    const card = document.createElement("label"); card.className = "account-card";
-    const title = document.createElement("strong"); title.textContent = "ACCOUNT 0" + i;
-    const input = document.createElement("input"); input.type = "url"; input.placeholder = "https://flow.google.com/project/…"; input.value = projects[i] || ""; input.dataset.account = i;
-    input.addEventListener("input", () => projects[i] = input.value);
-    card.append(title, input); $("accountList").append(card);
-  }
-}
-async function save() {
-  const result = await window.finalAsmr.saveConfig({ projects, prompts });
-  if (!result.ok) { status(result.error, true); return false; }
-  status("Prompts and five project links saved."); return true;
-}
-$("save").addEventListener("click", save);
-$("saveAccounts").addEventListener("click", save);
-$("generate").addEventListener("click", async () => {
-  $("generate").disabled = true; status("Saving configuration and opening five Flow browsers…");
-  try {
-    if (!await save()) return;
-    const result = await window.finalAsmr.generateVideo();
-    if (!result.ok) { status(result.error, true); return; }
-    status("Job " + result.jobId + " queued. Each account will receive its assigned prompt.");
-  } catch (e) { status(e.message || String(e), true); }
-  finally { $("generate").disabled = false; }
-});
-$("openBrowsers").addEventListener("click", async () => {
-  $("openBrowsers").disabled = true; status("Opening five separate Chrome profiles…");
-  try {
-    const r = await window.finalAsmr.launchFive();
-    if (!r.ok) status(r.error, true);
-    else status(r.results.filter(x => x.status !== "error").length + "/5 browser profiles opened or already running.");
-  } catch (e) { status(e.message || String(e), true); }
-  finally { $("openBrowsers").disabled = false; }
-});
-window.finalAsmr.onBrowserProgress(item => {
-  const el = $("browser" + item.id); if (el) el.textContent = item.status === "error" ? "Failed" : item.status === "already-open" ? "Already open" : "Ready";
-});
-window.finalAsmr.onWorkerEvent(event => status("Account " + event.profileId + ": " + (event.message || event.type || event.status)));
-(async () => {
-  const saved = await window.finalAsmr.getState();
-  projects = saved.projects || {};
-  prompts = saved.prompts?.length === 5 ? saved.prompts : [
-    "A ripe mango is sliced slowly with a polished chef's knife on a clean wooden board, crisp close-up ASMR, juicy texture, natural studio lighting, no music, no text.",
-    "A glossy red apple is cut into precise thin slices, macro camera, delicate crunching sounds, clean composition, realistic fruit texture, no music, no text.",
-    "A fresh green kiwi is sliced in half and into neat rounds, detailed macro shot, soft natural light, satisfying wet cutting sounds, no music, no text.",
-    "A chilled watermelon is cut into clean cubes, vivid red flesh and sparkling juice, close-up ASMR, slow deliberate knife movement, no music, no text.",
-    "A dragon fruit is sliced open and cut into elegant pieces, bright magenta skin and speckled white interior, macro cinematic ASMR, no music, no text."
-  ];
-  renderPrompts(); renderAccounts();
-  $("bridgeToken").textContent = saved.bridgeToken;
-  $("bridgeUrl").textContent = saved.bridgeUrl;
-})();
+const $=id=>document.getElementById(id);let projects={},prompts=[],settings={model:"Veo 3.1 Lite",resolution:"720p",durationSeconds:8,aspectRatio:"9:16"};
+function nav(page){["create","accounts","extension"].forEach(p=>$(p+"Page").hidden=p!==page);document.querySelectorAll("[data-page]").forEach(e=>e.classList.toggle("active",e.dataset.page===page));}
+document.querySelectorAll("[data-page]").forEach(e=>e.addEventListener("click",()=>nav(e.dataset.page)));
+function status(m,bad=false){$("status").textContent=m;$("status").style.color=bad?"#ff8585":"#b6c4da";}
+function renderPrompts(){$("promptList").replaceChildren();prompts.forEach((v,i)=>{const w=document.createElement("label");w.className="prompt-card";const t=document.createElement("span");t.textContent="PROMPT 0"+(i+1)+" · ACCOUNT 0"+(i+1);const a=document.createElement("textarea");a.rows=5;a.value=v;a.addEventListener("input",()=>prompts[i]=a.value);w.append(t,a);$("promptList").append(w);});}
+function renderAccounts(){$("accountList").replaceChildren();for(let i=1;i<=5;i++){const c=document.createElement("label");c.className="account-card";const t=document.createElement("strong");t.textContent="ACCOUNT 0"+i;const a=document.createElement("input");a.type="url";a.placeholder="https://flow.google.com/project/…";a.value=projects[i]||"";a.addEventListener("input",()=>projects[i]=a.value);c.append(t,a);$("accountList").append(c);}}
+function readSettings(){return{model:$("model").value,resolution:$("resolution").value,durationSeconds:Number($("duration").value),aspectRatio:$("aspectRatio").value};}
+function showSettings(s){$("model").value=s.model||"Veo 3.1 Lite";$("resolution").value=s.resolution||"720p";$("duration").value=String(s.durationSeconds||8);$("aspectRatio").value=s.aspectRatio||"9:16";}
+async function save(){const r=await window.finalAsmr.saveConfig({projects,prompts,settings:readSettings()});if(!r.ok){status(r.error,true);return false;}status("Prompts, project links and shared video settings saved.");return true;}
+$("save").addEventListener("click",save);$("saveAccounts").addEventListener("click",save);$("saveSettings").addEventListener("click",save);
+$("generate").addEventListener("click",async()=>{$("generate").disabled=true;status("Saving settings, opening profiles and assigning five prompts…");try{if(!await save())return;const r=await window.finalAsmr.generateVideo();if(!r.ok){status(r.error,true);return;}status("Job "+r.jobId+" queued. Shared settings: "+r.settings.model+", "+r.settings.resolution+", "+r.settings.durationSeconds+" sec, "+r.settings.aspectRatio+".");}catch(e){status(e.message||String(e),true);}finally{$("generate").disabled=false;}});
+$("openBrowsers").addEventListener("click",async()=>{$("openBrowsers").disabled=true;status("Opening five separate Chrome profiles…");try{const r=await window.finalAsmr.launchFive();if(!r.ok)status(r.error,true);else status(r.results.filter(x=>x.status!=="error").length+"/5 profiles opened or already running.");}catch(e){status(e.message||String(e),true);}finally{$("openBrowsers").disabled=false;}});
+$("openExtensionOptions").addEventListener("click",()=>status("In each profile: chrome://extensions → Final ASMR Flow Worker → Details → Extension options. Set profile 1–5, paste bridge token and enable."));
+window.finalAsmr.onBrowserProgress(x=>{const e=$("browser"+x.id);if(e)e.textContent=x.status==="error"?"Failed":x.status==="already-open"?"Already open":"Ready";});
+window.finalAsmr.onWorkerEvent(e=>status("Account "+(e.profileId||"?")+": "+(e.message||e.type||e.status),e.status==="error"));
+(async()=>{const s=await window.finalAsmr.getState();projects=s.projects||{};prompts=s.prompts?.length===5?s.prompts:["","","","",""];settings=s.settings||settings;renderPrompts();renderAccounts();showSettings(settings);$("bridgeToken").textContent=s.bridgeToken;$("bridgeUrl").textContent=s.bridgeUrl;})();
