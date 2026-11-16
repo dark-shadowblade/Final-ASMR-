@@ -36,6 +36,7 @@ async function save() {
   status("Prompts and five project links saved."); return true;
 }
 $("save").addEventListener("click", save);
+$("saveAccounts").addEventListener("click", save);
 $("generate").addEventListener("click", async () => {
   $("generate").disabled = true; status("Saving configuration and opening five Flow browsers…");
   try {
