@@ -76,24 +76,18 @@ async function launchProfile(id, chrome, root) {
   const port = 9300 + id;
   fs.mkdirSync(profileDir, { recursive: true });
 
-  // The app may have been restarted while Chrome remained open. Check the
-  // assigned debugging port before attempting to spawn another process.
+  // The app may have been restarted while Chrome remained open. Probe the
+  // assigned port quickly; never spend the full startup timeout on an absent port.
   try {
-    await waitForChrome(port, null);
-    return { id, status: "already-open", port, profileDir };
-  } catch {
-    // No responsive Chrome endpoint on this profile's assigned port; continue.
-  }
-
-  const tracked = children.get(id);
-  if (tracked && tracked.exitCode === null && !tracked.killed) {
-    try {
-      await waitForChrome(port, tracked);
-      return { id, status: "already-open", port, profileDir };
-    } catch {
-      children.delete(id);
+    const version = await getJson("http://127.0.0.1:" + port + "/json/version", 500);
+    if (version.webSocketDebuggerUrl) {
+      const pages = await getJson("http://127.0.0.1:" + port + "/json/list", 500);
+      if (Array.isArray(pages)) return { id, status: "already-open", port, profileDir };
     }
+  } catch {
+    // No responsive Chrome endpoint on this profile's assigned port; start it.
   }
+  children.delete(id);
 
   let child;
   try {
