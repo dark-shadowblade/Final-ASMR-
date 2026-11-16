@@ -1,36 +1,16 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Final ASMR</title>
+<html lang="en"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Final ASMR</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#eef2ff;font:15px Segoe UI,Arial,sans-serif;min-height:100vh;display:grid;place-items:center}
-main{width:min(620px,calc(100% - 40px));padding:34px;border:1px solid #26334d;border-radius:20px;background:#111a2c;box-shadow:0 24px 80px #0007}
-h1{font-size:28px;margin:0 0 8px}p{color:#9eabc2;line-height:1.55;margin:0 0 24px}
-button{width:100%;border:0;border-radius:12px;padding:17px;background:#6d5dfc;color:white;font-size:17px;font-weight:700;cursor:pointer}
-button:disabled{opacity:.55;cursor:wait}.profiles{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:24px 0}
-.profile{background:#17243a;border:1px solid #2b3b58;border-radius:10px;padding:13px 4px;text-align:center}
-.dot{width:9px;height:9px;background:#59677e;border-radius:50%;display:inline-block;margin-right:5px}.profile span{font-size:12px;color:#aebbd0}
-#status{font-size:13px;color:#b6c4da;min-height:22px;margin:12px 0}
-small{display:block;color:#71819d;line-height:1.5;margin-top:18px;overflow-wrap:anywhere}
-</style>
-</head>
-<body><main>
-<h1>Final ASMR</h1>
-<p>Open five separate Google Chrome windows. Each window has its own persistent browser profile and opens Google Flow.</p>
-<button id="launch">Open 5 Browsers</button>
-<div class="profiles">
-<div class="profile"><div>01</div><span id="s1"><i class="dot"></i>Ready</span></div>
-<div class="profile"><div>02</div><span id="s2"><i class="dot"></i>Ready</span></div>
-<div class="profile"><div>03</div><span id="s3"><i class="dot"></i>Ready</span></div>
-<div class="profile"><div>04</div><span id="s4"><i class="dot"></i>Ready</span></div>
-<div class="profile"><div>05</div><span id="s5"><i class="dot"></i>Ready</span></div>
-</div>
-<div id="status">Waiting for you.</div>
-<small>Profiles are saved locally and remain separate between launches. Sign in to each Google account yourself. No passwords are collected by this app.</small>
-<small id="path"></small>
-</main>
-<script src="renderer.js"></script>
-</body></html>
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#eef2ff;font:14px Segoe UI,Arial,sans-serif}header{height:68px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #26334d;background:#101a2c}h1{font-size:20px;margin:0}.shell{display:grid;grid-template-columns:190px 1fr;min-height:calc(100vh - 68px)}nav{padding:22px 14px;border-right:1px solid #26334d}nav button{display:block;width:100%;text-align:left;background:transparent;color:#aebbd0;border:0;padding:13px;border-radius:9px;margin-bottom:7px;cursor:pointer}nav button.active{background:#28365a;color:white}main{padding:28px;max-width:1100px;width:100%;margin:auto}h2{font-size:23px;margin:0 0 8px}.muted{color:#9eabc2;line-height:1.5;margin:0 0 22px}.toolbar{display:flex;gap:10px;margin:18px 0}.btn{border:0;border-radius:9px;padding:12px 18px;background:#6d5dfc;color:white;font-weight:700;cursor:pointer}.btn.secondary{background:#263653}.btn:disabled{opacity:.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.prompt-card,.account-card{display:flex;flex-direction:column;gap:9px;background:#111a2c;border:1px solid #26334d;border-radius:12px;padding:14px}.prompt-card span,.account-card strong{font-size:11px;letter-spacing:1px;color:#aebbd0;font-weight:700}textarea,input{width:100%;background:#0b1424;color:#eef2ff;border:1px solid #354663;border-radius:8px;padding:11px;font:13px Segoe UI,Arial;resize:vertical}textarea:focus,input:focus{outline:1px solid #8175ff}.accounts{display:grid;grid-template-columns:1fr;gap:12px}.workers{display:flex;gap:9px;margin:18px 0}.worker{flex:1;background:#17243a;border:1px solid #2b3b58;border-radius:9px;padding:12px;text-align:center;color:#c4cee0}.worker b{display:block;margin-bottom:5px}#status{min-height:24px;color:#b6c4da;margin:18px 0}.bridge{background:#101a2c;border:1px solid #26334d;border-radius:10px;padding:12px;color:#8293ae;font-size:11px;overflow-wrap:anywhere}code{color:#c6bfff}@media(max-width:760px){.shell{grid-template-columns:1fr}nav{display:flex;border-right:0;border-bottom:1px solid #26334d}.grid{grid-template-columns:1fr}main{padding:16px}}
+</style></head><body>
+<header><h1>Final ASMR</h1><span style="color:#8e9fbd">5 Flow workers · Prompt Manager</span></header>
+<div class="shell"><nav><button class="active" data-page="create">Create Video</button><button data-page="accounts">Accounts</button></nav>
+<main>
+<section id="createPage"><h2>Create Video</h2><p class="muted">Five prompts are assigned one-to-one to five independent Flow accounts. Edit prompts before generation.</p>
+<div class="grid" id="promptList"></div>
+<div class="workers"><div class="worker"><b>Account 01</b><span id="browser1">Ready</span></div><div class="worker"><b>Account 02</b><span id="browser2">Ready</span></div><div class="worker"><b>Account 03</b><span id="browser3">Ready</span></div><div class="worker"><b>Account 04</b><span id="browser4">Ready</span></div><div class="worker"><b>Account 05</b><span id="browser5">Ready</span></div></div>
+<div class="toolbar"><button class="btn" id="generate">Generate Video</button><button class="btn secondary" id="save">Save prompts & projects</button><button class="btn secondary" id="openBrowsers">Open 5 Browsers</button></div>
+<div id="status">Ready. Configure all five Flow project links under Accounts.</div></section>
+<section id="accountsPage" hidden><h2>Flow Accounts</h2><p class="muted">Paste the Google Flow project URL belonging to each matching Chrome profile. Each mapping is stored separately.</p><div class="accounts" id="accountList"></div><div class="toolbar"><button class="btn" id="save">Save prompts & projects</button></div>
+<div class="bridge">Extension bridge URL: <code id="bridgeUrl"></code><br>Bridge token (configure each extension profile): <code id="bridgeToken"></code></div></section>
+</main></div><script src="renderer.js"></script></body></html>
