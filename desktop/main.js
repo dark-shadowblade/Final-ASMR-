@@ -120,6 +120,7 @@ function startBridge() {
     }
     return sendJson(res, 404, { error: "NOT_FOUND" });
   });
+  bridgeServer.on("error", error => send("worker-event", { type: "BRIDGE_ERROR", message: error.message }));
   bridgeServer.listen(8765, "127.0.0.1");
 }
 function createWindow() {
@@ -150,6 +151,8 @@ ipcMain.handle("generate-video", async () => {
   if (state.prompts.some(p => !p)) return { ok: false, error: "All five prompts must contain text." };
   const launched = await launchFive();
   if (!launched.ok) return launched;
+  const failedBrowsers = launched.results.filter(item => item.status === "error");
+  if (failedBrowsers.length) return { ok: false, error: "Cannot queue prompts because these browsers failed: " + failedBrowsers.map(item => item.id + ": " + item.error).join("; ") };
   const jobId = crypto.randomUUID();
   state.tasks = state.tasks.filter(t => !["queued", "assigned", "generating"].includes(t.status));
   for (let id = 1; id <= 5; id++) state.tasks.push({ id: crypto.randomUUID(), jobId, clipId: "clip-" + id, profileId: id, projectUrl: state.projects[id], prompt: state.prompts[id - 1], settings: state.settings, status: "queued", createdAt: new Date().toISOString() });
