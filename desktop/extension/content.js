@@ -11,12 +11,7 @@
  async function waitAndClickDownload(){const end=Date.now()+10*60*1000;while(Date.now()<end){const found=buttons().filter(e=>/download/i.test([e.getAttribute("aria-label"),e.title,e.innerText,e.textContent].join(" "))&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");if(found.length===1){found[0].click();return;}await sleep(1500);}throw Error("Generated video download control did not appear within 10 minutes.");}
  function insertText(el,text){el.focus();if(el.isContentEditable){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand("delete");document.execCommand("insertText",false,text);}else{const p=el.tagName==="TEXTAREA"?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(p,"value").set.call(el,text);}el.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText",data:text}));el.dispatchEvent(new Event("change",{bubbles:true}));}
  async function run(task){try{if(!sameProject(location.href,task.projectUrl))throw Error("Wrong project tab for this account.");await waitForPage(task);
- // Each account receives its own prompt; all accounts use this shared settings object.
- await chooseSetting("model",task.settings.model,/model|veo/i);
- await chooseSetting("resolution",task.settings.resolution,/resolution|quality|720p|1080p/i);
- await chooseSetting("duration",task.settings.durationSeconds+" seconds",/duration|seconds|8s/i);
- await chooseSetting("aspect ratio",task.settings.aspectRatio,/aspect|ratio|portrait|landscape/i);
- const field=promptField();if(!field)throw Error("Prompt input is not uniquely identifiable.");insertText(field,task.prompt);await sleep(300);
+ // Video settings remain preconfigured in Flow; this worker handles only prompt submission and download.\n const field=promptField();if(!field)throw Error("Prompt input is not uniquely identifiable.");insertText(field,task.prompt);await sleep(300);
  const actual=(field.value||field.innerText||field.textContent||"").trim();if(actual!==task.prompt.trim())throw Error("Prompt insertion verification failed.");
  const gen=buttons().filter(e=>/start generation|generate|create video|arrow_forward/i.test([e.getAttribute("aria-label"),e.title,e.innerText,e.textContent].join(" ")));
  if(gen.length!==1||gen[0].disabled||gen[0].getAttribute("aria-disabled")==="true")throw Error("Generate button is missing, disabled, or ambiguous.");
