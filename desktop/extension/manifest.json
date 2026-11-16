@@ -3,7 +3,7 @@
   "name": "Final ASMR Flow Worker",
   "version": "0.1.0",
   "description": "Receives one assigned prompt and operates the matching Google Flow project.",
-  "permissions": ["storage", "alarms", "tabs"],
+  "permissions": ["storage", "alarms", "tabs", "downloads"],
   "host_permissions": ["https://flow.google.com/*", "http://127.0.0.1:8765/*"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [{
