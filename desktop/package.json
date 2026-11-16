@@ -23,7 +23,8 @@
       "preload.js",
       "index.html",
       "renderer.js",
-      "package.json"
+      "package.json",
+      "extension/**/*"
     ],
     "win": {
       "target": [
