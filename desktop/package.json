@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --win nsis --x64"
+    "build:win": "electron-builder --win nsis --x64",
+    "test": "node --check main.js && node --check preload.js && node --check renderer.js"
   },
   "devDependencies": {
     "electron": "^35.0.0",
@@ -14,10 +15,20 @@
   "build": {
     "appId": "com.darkshadowblade.finalasmr",
     "productName": "Final ASMR",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "index.html", "renderer.js", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "package.json"
+    ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "artifactName": "Final-ASMR-Setup-${version}.${ext}"
     },
     "nsis": {
