@@ -60,7 +60,8 @@ async function launchProfile(id, chrome, root) {
   } catch {}
   let child;
   try {
-    child = spawn(chrome, ["--remote-debugging-port=" + port, "--user-data-dir=" + profileDir, "--no-first-run", "--no-default-browser-check", "--new-window", projectUrl], { detached: false, stdio: "ignore", windowsHide: false });
+    const extensionPath = path.join(__dirname, "extension");
+    child = spawn(chrome, ["--remote-debugging-port=" + port, "--user-data-dir=" + profileDir, "--load-extension=" + extensionPath, "--no-first-run", "--no-default-browser-check", "--new-window", projectUrl], { detached: false, stdio: "ignore", windowsHide: false });
     children.set(id, child);
     const failed = new Promise((_, reject) => child.once("error", e => reject(e)));
     await Promise.race([waitForChrome(port, child), failed]);
@@ -89,7 +90,9 @@ function sendJson(res, status, value) {
   res.end(body);
 }
 function startBridge() {
-  bridgeToken = crypto.randomBytes(32).toString("hex");
+  bridgeToken = state.bridgeToken || crypto.randomBytes(32).toString("hex");
+  state.bridgeToken = bridgeToken;
+  saveState();
   bridgeServer = http.createServer((req, res) => {
     if (req.method === "OPTIONS") return sendJson(res, 200, {});
     if (req.headers["x-final-asmr-token"] !== bridgeToken) return sendJson(res, 401, { error: "UNAUTHORIZED" });
