@@ -14,7 +14,8 @@
  // Video settings remain preconfigured in Flow; this worker handles only prompt submission and download.
  const field=promptField();if(!field)throw Error("Prompt input is not uniquely identifiable.");insertText(field,task.prompt);await sleep(300);
  const actual=(field.value||field.innerText||field.textContent||"").trim();if(actual!==task.prompt.trim())throw Error("Prompt insertion verification failed.");
- const beforeDownloads=new Set(buttons().filter(e=>/download/i.test([e.getAttribute("aria-label"),e.title,e.innerText,e.textContent].join(" "))));\n const gen=buttons().filter(e=>/start generation|generate|create video|arrow_forward/i.test([e.getAttribute("aria-label"),e.title,e.innerText,e.textContent].join(" ")));
+ const beforeDownloads=new Set(buttons().filter(e=>/download/i.test([e.getAttribute("aria-label"),e.title,e.innerText,e.textContent].join(" "))));
+ const gen=buttons().filter(e=>/start generation|generate|create video|arrow_forward/i.test([e.getAttribute("aria-label"),e.title,e.innerText,e.textContent].join(" ")));
  if(gen.length!==1||gen[0].disabled||gen[0].getAttribute("aria-disabled")==="true")throw Error("Generate button is missing, disabled, or ambiguous.");
  gen[0].click();emit("PROMPT_SUBMITTED","submitted","Account "+task.profileId+": its own prompt was inserted and Generate clicked.");task.prompt="";await waitAndClickDownload(beforeDownloads);
  }catch(e){emit("FLOW_AUTOMATION_BLOCKED","error",e.message||String(e));}}
