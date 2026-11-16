@@ -76,6 +76,15 @@ async function launchProfile(id, chrome, root) {
   const port = 9300 + id;
   fs.mkdirSync(profileDir, { recursive: true });
 
+  // The app may have been restarted while Chrome remained open. Check the
+  // assigned debugging port before attempting to spawn another process.
+  try {
+    await waitForChrome(port, null);
+    return { id, status: "already-open", port, profileDir };
+  } catch {
+    // No responsive Chrome endpoint on this profile's assigned port; continue.
+  }
+
   const tracked = children.get(id);
   if (tracked && tracked.exitCode === null && !tracked.killed) {
     try {
