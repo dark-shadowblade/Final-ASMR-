@@ -1,56 +1,134 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 
 const FLOW_URL = "https://flow.google.com/";
 const MAX_PROFILES = 5;
+const STARTUP_TIMEOUT_MS = 25000;
 const children = new Map();
+let mainWindow;
 
 function findChrome() {
-  const candidates = [
-    path.join(process.env.PROGRAMFILES || "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
-    path.join(process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
-    path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe")
-  ];
-  return candidates.find(p => fs.existsSync(p)) || null;
+  const bases = [
+    process.env.PROGRAMW6432,
+    process.env.ProgramFiles,
+    process.env["ProgramFiles(x86)"],
+    process.env.LOCALAPPDATA
+  ].filter(Boolean);
+  const candidates = [...new Set(bases.map(base =>
+    path.join(base, "Google", "Chrome", "Application", "chrome.exe")
+  ))];
+  return candidates.find(candidate => fs.existsSync(candidate)) || null;
 }
 
-function launchFive() {
-  const chrome = findChrome();
-  if (!chrome) throw new Error("Google Chrome was not found. Install Google Chrome and try again.");
-  const root = path.join(app.getPath("userData"), "browser-profiles");
-  fs.mkdirSync(root, { recursive: true });
-  const results = [];
-  for (let id = 1; id <= MAX_PROFILES; id++) {
-    const profileDir = path.join(root, `account-${String(id).padStart(2, "0")}`);
-    fs.mkdirSync(profileDir, { recursive: true });
-    const existing = children.get(id);
-    if (existing && existing.exitCode === null && !existing.killed) {
-      results.push({ id, status: "already-open" });
-      continue;
+function getJson(url, timeoutMs = 1200) {
+  return new Promise((resolve, reject) => {
+    const request = http.get(url, { timeout: timeoutMs }, response => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", chunk => body += chunk);
+      response.on("end", () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error("Chrome debugging endpoint returned HTTP " + response.statusCode));
+          return;
+        }
+        try { resolve(JSON.parse(body)); }
+        catch { reject(new Error("Chrome debugging endpoint returned invalid JSON")); }
+      });
+    });
+    request.on("timeout", () => request.destroy(new Error("Chrome debugging endpoint timed out")));
+    request.on("error", reject);
+  });
+}
+
+async function waitForChrome(port, child) {
+  const endpoint = "http://127.0.0.1:" + port + "/json/version";
+  const deadline = Date.now() + STARTUP_TIMEOUT_MS;
+  let lastError = "Chrome debugging endpoint did not become ready.";
+  while (Date.now() < deadline) {
+    if (child && child.exitCode !== null) {
+      throw new Error("Chrome exited during startup (exit code " + child.exitCode + ").");
     }
-    const port = 9300 + id;
-    const child = spawn(chrome, [
-      `--remote-debugging-port=${port}`,
-      `--user-data-dir=${profileDir}`,
+    try {
+      const version = await getJson(endpoint);
+      if (!version.webSocketDebuggerUrl) throw new Error("Chrome responded without a debugger WebSocket URL.");
+      const pages = await getJson("http://127.0.0.1:" + port + "/json/list");
+      if (!Array.isArray(pages)) throw new Error("Chrome page list was not available.");
+      return { version, pages };
+    } catch (error) {
+      lastError = error.message;
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
+  }
+  throw new Error("Chrome did not become ready within " + (STARTUP_TIMEOUT_MS / 1000) + " seconds. " + lastError);
+}
+
+function sendLaunchError(id, message) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("launch-error", { id, message });
+  }
+}
+
+async function launchProfile(id, chrome, root) {
+  const profileDir = path.join(root, "account-" + String(id).padStart(2, "0"));
+  const port = 9300 + id;
+  fs.mkdirSync(profileDir, { recursive: true });
+
+  const tracked = children.get(id);
+  if (tracked && tracked.exitCode === null && !tracked.killed) {
+    try {
+      await waitForChrome(port, tracked);
+      return { id, status: "already-open", port, profileDir };
+    } catch {
+      children.delete(id);
+    }
+  }
+
+  let child;
+  try {
+    child = spawn(chrome, [
+      "--remote-debugging-port=" + port,
+      "--user-data-dir=" + profileDir,
       "--no-first-run",
       "--no-default-browser-check",
       "--new-window",
       FLOW_URL
     ], { detached: false, stdio: "ignore", windowsHide: false });
-    child.on("error", err => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("launch-error", { id, message: err.message });
-      }
-    });
     children.set(id, child);
-    results.push({ id, status: "launched", profileDir, port });
+
+    const spawnError = new Promise((_, reject) => {
+      child.once("error", error => reject(new Error("Could not start Chrome: " + error.message)));
+    });
+    const ready = waitForChrome(port, child);
+    await Promise.race([ready, spawnError]);
+    return { id, status: "opened", port, profileDir };
+  } catch (error) {
+    if (child && child.exitCode === null && !child.killed) {
+      try { child.kill(); } catch {}
+    }
+    children.delete(id);
+    const message = error.message || String(error);
+    sendLaunchError(id, message);
+    return { id, status: "error", port, profileDir, error: message };
   }
-  return { results, profileRoot: root };
 }
 
-let mainWindow;
+async function launchFive() {
+  const chrome = findChrome();
+  if (!chrome) throw new Error("Google Chrome was not found. Checked Program Files and Local AppData. Install desktop Google Chrome first.");
+  const root = path.join(app.getPath("userData"), "browser-profiles");
+  fs.mkdirSync(root, { recursive: true });
+  const results = [];
+  // Match the reference implementation: start one isolated profile, verify its
+  // remote-debugging endpoint and browser pages, then proceed to the next.
+  for (let id = 1; id <= MAX_PROFILES; id++) {
+    results.push(await launchProfile(id, chrome, root));
+  }
+  return { results, profileRoot: root, chromePath: chrome };
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 760, height: 540, minWidth: 620, minHeight: 460,
@@ -66,7 +144,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 }
 ipcMain.handle("launch-five", async () => {
-  try { return { ok: true, ...launchFive() }; }
+  try { return { ok: true, ...await launchFive() }; }
   catch (error) { return { ok: false, error: error.message }; }
 });
 ipcMain.handle("get-profile-root", () => path.join(app.getPath("userData"), "browser-profiles"));
