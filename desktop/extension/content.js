@@ -105,9 +105,9 @@
    const card=await waitFor(task,()=>{
      const candidates=promptCardCandidates(task.prompt).filter(c=>!baseline.has(cardSignature(c)));
      if(candidates.length!==1)return null;
-     const media=candidates[0].querySelector("video,video source,[data-testid*=video],[aria-label*=video i]");
+     const media=candidates[0].querySelector("video");
      const more=cardMoreButton(candidates[0]);
-     if(!media||!more)return null;
+     if(!media||media.readyState<2||!more)return null;
      const cardText=normalizedText(candidates[0].innerText||candidates[0].textContent);
      if(/\b(generating|queued|processing|creating|in progress)\b/i.test(cardText))return null;
      return candidates[0];
