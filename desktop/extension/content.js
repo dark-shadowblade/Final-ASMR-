@@ -62,15 +62,7 @@
  function exactActionMatches(pattern) {
    return menuItems().filter(e => pattern.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
  }
- async function clickUniqueAction(pattern,timeout,message) {
-   const el = await waitFor({id:window.__finalAsmrTaskId,projectUrl:location.href},() => {
-     const matches = exactActionMatches(pattern);
-     return matches.length === 1 ? matches[0] : null;
-   },timeout,message);
-   el.click();
-   return el;
- }
- async function waitAndClickDownload(task,before) {
+ async function waitAndClickDownload(task) {
    // Flow's documented route: generated clip > More (⋮) > Download > choose 720p video.
    const more = await waitFor(task,() => {
      const matches = buttons().filter(e => /\bmore\b|\bmore options\b|\bopen menu\b/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
@@ -113,12 +105,11 @@
        const value = (field.value ?? field.innerText ?? field.textContent ?? "").trim();
        return value === task.prompt.trim();
      },10000,"Prompt insertion could not be verified.");
-     const beforeDownloads = new Map(buttons().filter(e => /download/.test(label(e))).map(e => [e,(e.disabled || e.getAttribute("aria-disabled") === "true") ? "disabled" : "enabled"]));
      const generate = await waitForGenerate(task);
      assertRunning(task.id);
      generate.click();
      emit("PROMPT_SUBMITTED","submitted","Account "+task.profileId+": prompt verified and Generate clicked.");
-     await waitAndClickDownload(task,beforeDownloads);
+     await waitAndClickDownload(task);
      assertRunning(task.id);
    } catch (e) {
      if (e.message !== "JOB_CANCELLED") emit("FLOW_AUTOMATION_BLOCKED","error",e.message || String(e));
