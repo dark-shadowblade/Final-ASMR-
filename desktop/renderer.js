@@ -8,7 +8,7 @@ async function save(showMessage=true){const r=await window.finalAsmr.saveConfig(
 $("saveAccounts").addEventListener("click",save);$("saveSettings").addEventListener("click",save);
 $("generate").addEventListener("click",async()=>{$("generate").disabled=true;status("Preparing output folder and starting the five Flow workers…");try{if(!await save(false))return;const r=await window.finalAsmr.generateVideo($("jobTopic").value);if(!r.ok){status(r.error,true);return;}status("Generation started. Job folder: "+r.jobFolder);}catch(e){status(e.message||String(e),true);}finally{$("generate").disabled=false;}});
 
-$("openExtensionOptions").addEventListener("click",()=>status("In each profile: chrome://extensions → Final ASMR Flow Worker → Details → Extension options. Set profile 1–5, paste bridge token and enable."));
+
 window.finalAsmr.onBrowserProgress(x=>{const e=$("browser"+x.id);if(e)e.textContent=x.status==="error"?"Failed":x.status==="already-open"?"Already open":"Ready";});
 $("chooseJobsRoot").addEventListener("click",async()=>{const r=await window.finalAsmr.chooseJobsRoot();if(r.ok){jobsRoot=r.path;$("jobsRootPath").textContent=jobsRoot;status("Output folder selected. Click Save Settings to keep it.");}});
 window.finalAsmr.onWorkerEvent(e=>status("Account "+(e.profileId||"?")+": "+(e.message||e.type||e.status),e.status==="error"));
