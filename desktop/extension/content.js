@@ -64,10 +64,17 @@
    return menuItems().filter(e => pattern.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
  }
  function normalizedText(value) { return String(value||"").replace(/\s+/g," ").trim(); }
- function cardSignature(card) {
-   const media = [...card.querySelectorAll("video,source,img")].map(e => e.currentSrc||e.src||e.getAttribute("src")||"").filter(Boolean).join("|");
-   const attrs = ["data-testid","data-asset-id","data-id","id"].map(k=>card.getAttribute(k)||"").join("|");
-   return attrs+"::"+normalizedText(card.innerText||card.textContent).slice(0,1200)+"::"+media;
+ function cardStableKeys(card) {
+   const keys = [];
+   for (const attr of ["data-asset-id","data-id","data-video-id","data-generation-id"]) {
+     const value = card.getAttribute(attr);
+     if (value) keys.push(attr+":"+value);
+   }
+   for (const media of card.querySelectorAll("video,video source")) {
+     const url = media.currentSrc || media.src || media.getAttribute("src");
+     if (url) keys.push("media:"+url);
+   }
+   return keys;
  }
  function promptCardCandidates(prompt) {
    const wanted=normalizedText(prompt);
@@ -95,7 +102,21 @@
    return [...new Set(matches)];
  }
  function captureExistingCards(prompt) {
-   return new Set(promptCardCandidates(prompt).map(cardSignature));
+   const cards = promptCardCandidates(prompt);
+   return {
+     nodes: new WeakSet(cards),
+     stableKeys: new Set(cards.flatMap(cardStableKeys))
+   };
+ }
+ function isNewPromptCard(card, baseline) {
+   // DOM identity prevents a pre-existing card from becoming "new" just because
+   // Flow updates its status text, thumbnail, or menu labels.
+   if (baseline.nodes.has(card)) return false;
+   // Stable asset/media IDs also protect against Flow re-rendering an old card
+   // into a replacement DOM node after Generate is clicked.
+   const keys = cardStableKeys(card);
+   if (keys.some(key => baseline.stableKeys.has(key))) return false;
+   return true;
  }
  function cardMoreButton(card) {
    const found=[...card.querySelectorAll("button,[role=button]")].filter(e=>visible(e)&&/\bmore\b|\bmore options\b/.test(label(e))&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
@@ -104,7 +125,7 @@
  async function waitAndClickDownload(task,baseline) {
    // Only act on a new Flow tile carrying this exact prompt. Existing matching tiles are excluded.
    const card=await waitFor(task,()=>{
-     const candidates=promptCardCandidates(task.prompt).filter(c=>!baseline.has(cardSignature(c)));
+     const candidates=promptCardCandidates(task.prompt).filter(c=>isNewPromptCard(c,baseline));
      if(candidates.length!==1)return null;
      const media=candidates[0].querySelector("video");
      const more=cardMoreButton(candidates[0]);
