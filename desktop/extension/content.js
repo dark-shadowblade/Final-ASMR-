@@ -58,9 +58,9 @@
  }
  async function waitAndClickDownload(task,before) {
    return waitFor(task, () => {
-     const found = buttons().filter(e => !before.has(e) && /download/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
+     const found = buttons().filter(e => /download/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true" && (!before.has(e) || before.get(e) === "disabled"));
      return found.length === 1 ? found[0] : null;
-   }, 15*60*1000, "No new video download control appeared within 15 minutes.");
+   }, 15*60*1000, "No newly available video download control appeared within 15 minutes.");
  }
  async function run(task) {
    if (!task?.id || startedTasks.has(task.id)) return;
@@ -77,7 +77,7 @@
        const value = (field.value ?? field.innerText ?? field.textContent ?? "").trim();
        return value === task.prompt.trim();
      },10000,"Prompt insertion could not be verified.");
-     const beforeDownloads = new Set(buttons().filter(e => /download/.test(label(e))));
+     const beforeDownloads = new Map(buttons().filter(e => /download/.test(label(e))).map(e => [e,(e.disabled || e.getAttribute("aria-disabled") === "true") ? "disabled" : "enabled"]));
      const generate = await waitForGenerate(task);
      assertRunning(task.id);
      generate.click();
@@ -89,7 +89,6 @@
    } catch (e) {
      if (e.message !== "JOB_CANCELLED") emit("FLOW_AUTOMATION_BLOCKED","error",e.message || String(e));
    } finally {
-     startedTasks.delete(task.id);
      if (window.__finalAsmrTaskId === task.id) window.__finalAsmrTaskId = null;
    }
  }
