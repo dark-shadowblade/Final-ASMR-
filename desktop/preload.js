@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("finalAsmr", {
   launchFive: () => ipcRenderer.invoke("launch-five"),
   getState: () => ipcRenderer.invoke("get-state"),
+  chooseJobsRoot: () => ipcRenderer.invoke("choose-jobs-root"),
   saveConfig: value => ipcRenderer.invoke("save-config", value),
   generateVideo: topic => ipcRenderer.invoke("generate-video", topic),
   onBrowserProgress: callback => ipcRenderer.on("browser-progress", (_event, data) => callback(data)),
