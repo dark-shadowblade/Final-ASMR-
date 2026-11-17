@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("finalAsmr", {
   chooseJobsRoot: () => ipcRenderer.invoke("choose-jobs-root"),
   saveConfig: value => ipcRenderer.invoke("save-config", value),
   generateVideo: topic => ipcRenderer.invoke("generate-video", topic),
+  stopCurrentJob: () => ipcRenderer.invoke("stop-current-job"),
+  onJobStopped: callback => ipcRenderer.on("job-stopped", (_event, data) => callback(data)),
   onBrowserProgress: callback => ipcRenderer.on("browser-progress", (_event, data) => callback(data)),
   onWorkerEvent: callback => ipcRenderer.on("worker-event", (_event, data) => callback(data))
 });
