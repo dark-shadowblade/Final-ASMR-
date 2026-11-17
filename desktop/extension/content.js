@@ -78,10 +78,10 @@
    download.click();
    const quality = await waitFor(task,() => {
      const matches = menuItems().filter(e => {
-       const text = label(e).replace(/\\s+/g," ").trim();
+       const text = label(e).replace(/\s+/g," ").trim();
        const enabled = !e.disabled && e.getAttribute("aria-disabled") !== "true";
        // 720p is the guide's original-video export; never choose the 270p GIF or an upscale.
-       return enabled && /\\b720\\s*p\\b/.test(text) && !/gif|270\\s*p|1080\\s*p|4k|upscale/.test(text);
+       return enabled && /\b720\s*p\b/.test(text) && !/gif|270\s*p|1080\s*p|4k|upscale/.test(text);
      });
      return matches.length === 1 ? matches[0] : null;
    },15000,"Flow did not expose one unambiguous 720p video export option.");
