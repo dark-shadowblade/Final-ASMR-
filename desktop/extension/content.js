@@ -58,7 +58,23 @@
    }, 60000, "Generate button did not become uniquely available within 60 seconds.");
  }
  function menuItems() {
-   return [...document.querySelectorAll("button,[role=button],[role=menuitem],[role=option]")].filter(visible);
+   return [...document.querySelectorAll("button,[role=button],[role=menuitem],[role=option],[role=menuitemradio],[tabindex]:not([tabindex='-1'])")].filter(visible);
+ }
+ function qualityOptionMatches() {
+   // Flow's export menu labels the video choice "720p / Original size";
+   // the 270p choice is an Animated GIF and must never be clicked.
+   const candidates=[...document.querySelectorAll("body *")].filter(e=>{
+     if(!visible(e)||e.children.length>3)return false;
+     const text=normalizedText(e.innerText||e.textContent);
+     return text.length<=100&&/\b720\s*p\b/i.test(text)&&/original\s*size/i.test(text)&&!/gif|270\s*p|1080\s*p|4k|upscale/i.test(text);
+   });
+   const targets=new Set();
+   for(const e of candidates){
+     const target=e.closest("button,[role=button],[role=menuitem],[role=option],[role=menuitemradio],[tabindex]:not([tabindex='-1'])")||e;
+     if(visible(target)&&!target.disabled&&target.getAttribute("aria-disabled")!=="true")targets.add(target);
+   }
+   // Keep only the outer actionable target for each matching label.
+   return [...targets].filter(t=>![...targets].some(other=>other!==t&&other.contains(t)));
  }
  function exactActionMatches(pattern) {
    return menuItems().filter(e => pattern.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
@@ -145,12 +161,9 @@
    assertRunning(task.id);
    download.click();
    const quality=await waitFor(task,()=>{
-     const matches=menuItems().filter(e=>{
-       const text=normalizedText(label(e));
-       return !e.disabled&&e.getAttribute("aria-disabled")!=="true"&&/\b720\s*p\b/.test(text)&&!/gif|270\s*p|1080\s*p|4k|upscale/i.test(text);
-     });
+     const matches=qualityOptionMatches();
      return matches.length===1?matches[0]:null;
-   },15000,"Flow did not expose one unambiguous 720p video export option.");
+   },15000,"Flow did not expose exactly one clickable 720p Original size video export option (the 270p Animated GIF is intentionally ignored).");
    assertRunning(task.id);
    quality.click();
    emit("DOWNLOAD_CLICKED","downloading","Account "+task.profileId+": selected 720p from the new video card matching the submitted prompt.");
