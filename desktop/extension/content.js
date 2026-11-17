@@ -62,7 +62,7 @@
  function exactActionMatches(pattern) {
    return menuItems().filter(e => pattern.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
  }
- function normalizedText(value) { return String(value||"").replace(/\\s+/g," ").trim(); }
+ function normalizedText(value) { return String(value||"").replace(/\s+/g," ").trim(); }
  function cardSignature(card) {
    const media = [...card.querySelectorAll("video,source,img")].map(e => e.currentSrc||e.src||e.getAttribute("src")||"").filter(Boolean).join("|");
    const attrs = ["data-testid","data-asset-id","data-id","id"].map(k=>card.getAttribute(k)||"").join("|");
@@ -83,9 +83,9 @@
        if(!visible(el)) continue;
        const text=normalizedText(el.innerText||el.textContent);
        if(text.length>wanted.length+1800) continue;
-       const hasMore=[...el.querySelectorAll("button,[role=button]")].some(x=>visible(x)&&/\\bmore\\b|\\bmore options\\b/.test(label(x)));
+       const hasMore=[...el.querySelectorAll("button,[role=button]")].some(x=>visible(x)&&/\bmore\b|\bmore options\b/.test(label(x)));
        const hasMedia=!!el.querySelector("video,video source,[data-testid*=video],[aria-label*=video i]");
-       if(hasMore&&(hasMedia||/\\bvideo\\b/i.test(text))){
+       if(hasMore&&(hasMedia||/\bvideo\b/i.test(text))){
          matches.push(el);
          break;
        }
@@ -97,7 +97,7 @@
    return new Set(promptCardCandidates(prompt).map(cardSignature));
  }
  function cardMoreButton(card) {
-   const found=[...card.querySelectorAll("button,[role=button]")].filter(e=>visible(e)&&/\\bmore\\b|\\bmore options\\b/.test(label(e))&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
+   const found=[...card.querySelectorAll("button,[role=button]")].filter(e=>visible(e)&&/\bmore\b|\bmore options\b/.test(label(e))&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
    return found.length===1?found[0]:null;
  }
  async function waitAndClickDownload(task,baseline) {
@@ -109,7 +109,7 @@
      const more=cardMoreButton(candidates[0]);
      if(!media||!more)return null;
      const cardText=normalizedText(candidates[0].innerText||candidates[0].textContent);
-     if(/\\b(generating|queued|processing|creating|in progress)\\b/i.test(cardText))return null;
+     if(/\b(generating|queued|processing|creating|in progress)\b/i.test(cardText))return null;
      return candidates[0];
    },15*60*1000,"Could not identify exactly one newly generated, completed video card matching this prompt. No download was attempted.");
    assertRunning(task.id);
@@ -117,7 +117,7 @@
    if(!more)throw Error("The identified new video card does not have one unambiguous More button.");
    more.click();
    const download=await waitFor(task,()=>{
-     const matches=exactActionMatches(/^download(?: video)?$/);
+     const matches=exactActionMatches(/\bdownload\b/);
      return matches.length===1?matches[0]:null;
    },15000,"Flow's Download menu item was not uniquely available.");
    assertRunning(task.id);
@@ -125,7 +125,7 @@
    const quality=await waitFor(task,()=>{
      const matches=menuItems().filter(e=>{
        const text=normalizedText(label(e));
-       return !e.disabled&&e.getAttribute("aria-disabled")!=="true"&&/\\b720\\s*p\\b/.test(text)&&!/gif|270\\s*p|1080\\s*p|4k|upscale/i.test(text);
+       return !e.disabled&&e.getAttribute("aria-disabled")!=="true"&&/\b720\s*p\b/.test(text)&&!/gif|270\s*p|1080\s*p|4k|upscale/i.test(text);
      });
      return matches.length===1?matches[0]:null;
    },15000,"Flow did not expose one unambiguous 720p video export option.");
