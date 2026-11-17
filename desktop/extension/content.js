@@ -62,33 +62,76 @@
  function exactActionMatches(pattern) {
    return menuItems().filter(e => pattern.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
  }
- async function waitAndClickDownload(task) {
-   // Flow's documented route: generated clip > More (⋮) > Download > choose 720p video.
-   const more = await waitFor(task,() => {
-     const matches = buttons().filter(e => /\bmore\b|\bmore options\b|\bopen menu\b/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
-     return matches.length === 1 ? matches[0] : null;
-   },15*60*1000,"The generated clip's More menu did not become uniquely available.");
+ function normalizedText(value) { return String(value||"").replace(/\\s+/g," ").trim(); }
+ function cardSignature(card) {
+   const media = [...card.querySelectorAll("video,source,img")].map(e => e.currentSrc||e.src||e.getAttribute("src")||"").filter(Boolean).join("|");
+   const attrs = ["data-testid","data-asset-id","data-id","id"].map(k=>card.getAttribute(k)||"").join("|");
+   return attrs+"::"+normalizedText(card.innerText||card.textContent).slice(0,1200)+"::"+media;
+ }
+ function promptCardCandidates(prompt) {
+   const wanted=normalizedText(prompt);
+   const matches=[];
+   const textNodes=[];
+   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+   while(walker.nextNode()){
+     const node=walker.currentNode;
+     if(normalizedText(node.nodeValue)===wanted) textNodes.push(node);
+   }
+   for(const node of textNodes){
+     let el=node.parentElement;
+     for(let depth=0;el&&depth<9;depth++,el=el.parentElement){
+       if(!visible(el)) continue;
+       const text=normalizedText(el.innerText||el.textContent);
+       if(text.length>wanted.length+1800) continue;
+       const hasMore=[...el.querySelectorAll("button,[role=button]")].some(x=>visible(x)&&/\\bmore\\b|\\bmore options\\b/.test(label(x)));
+       const hasMedia=!!el.querySelector("video,video source,[data-testid*=video],[aria-label*=video i]");
+       if(hasMore&&(hasMedia||/\\bvideo\\b/i.test(text))){
+         matches.push(el);
+         break;
+       }
+     }
+   }
+   return [...new Set(matches)];
+ }
+ function captureExistingCards(prompt) {
+   return new Set(promptCardCandidates(prompt).map(cardSignature));
+ }
+ function cardMoreButton(card) {
+   const found=[...card.querySelectorAll("button,[role=button]")].filter(e=>visible(e)&&/\\bmore\\b|\\bmore options\\b/.test(label(e))&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
+   return found.length===1?found[0]:null;
+ }
+ async function waitAndClickDownload(task,baseline) {
+   // Only act on a new Flow tile carrying this exact prompt. Existing matching tiles are excluded.
+   const card=await waitFor(task,()=>{
+     const candidates=promptCardCandidates(task.prompt).filter(c=>!baseline.has(cardSignature(c)));
+     if(candidates.length!==1)return null;
+     const media=candidates[0].querySelector("video,video source,[data-testid*=video],[aria-label*=video i]");
+     const more=cardMoreButton(candidates[0]);
+     if(!media||!more)return null;
+     const cardText=normalizedText(candidates[0].innerText||candidates[0].textContent);
+     if(/\\b(generating|queued|processing|creating|in progress)\\b/i.test(cardText))return null;
+     return candidates[0];
+   },15*60*1000,"Could not identify exactly one newly generated, completed video card matching this prompt. No download was attempted.");
    assertRunning(task.id);
+   const more=cardMoreButton(card);
+   if(!more)throw Error("The identified new video card does not have one unambiguous More button.");
    more.click();
-   const download = await waitFor(task,() => {
-     const matches = exactActionMatches(/\bdownload\b/);
-     return matches.length === 1 ? matches[0] : null;
-   },15000,"Flow's Download menu item did not appear after opening More.");
+   const download=await waitFor(task,()=>{
+     const matches=exactActionMatches(/^download(?: video)?$/);
+     return matches.length===1?matches[0]:null;
+   },15000,"Flow's Download menu item was not uniquely available.");
    assertRunning(task.id);
    download.click();
-   const quality = await waitFor(task,() => {
-     const matches = menuItems().filter(e => {
-       const text = label(e).replace(/\s+/g," ").trim();
-       const enabled = !e.disabled && e.getAttribute("aria-disabled") !== "true";
-       // 720p is the guide's original-video export; never choose the 270p GIF or an upscale.
-       return enabled && /\b720\s*p\b/.test(text) && !/gif|270\s*p|1080\s*p|4k|upscale/.test(text);
+   const quality=await waitFor(task,()=>{
+     const matches=menuItems().filter(e=>{
+       const text=normalizedText(label(e));
+       return !e.disabled&&e.getAttribute("aria-disabled")!=="true"&&/\\b720\\s*p\\b/.test(text)&&!/gif|270\\s*p|1080\\s*p|4k|upscale/i.test(text);
      });
-     return matches.length === 1 ? matches[0] : null;
+     return matches.length===1?matches[0]:null;
    },15000,"Flow did not expose one unambiguous 720p video export option.");
    assertRunning(task.id);
    quality.click();
-   emit("DOWNLOAD_CLICKED","downloading","Account "+task.profileId+": selected Flow's 720p original-video export.");
-   return quality;
+   emit("DOWNLOAD_CLICKED","downloading","Account "+task.profileId+": selected 720p from the new video card matching the submitted prompt.");
  }
  async function run(task) {
    if (!task?.id || startedTasks.has(task.id)) return;
@@ -105,11 +148,11 @@
        const value = (field.value ?? field.innerText ?? field.textContent ?? "").trim();
        return value === task.prompt.trim();
      },10000,"Prompt insertion could not be verified.");
-     const generate = await waitForGenerate(task);
+     const baseline = captureExistingCards(task.prompt);\n     const generate = await waitForGenerate(task);
      assertRunning(task.id);
      generate.click();
      emit("PROMPT_SUBMITTED","submitted","Account "+task.profileId+": prompt verified and Generate clicked.");
-     await waitAndClickDownload(task);
+     await waitAndClickDownload(task,baseline);
      assertRunning(task.id);
    } catch (e) {
      if (e.message !== "JOB_CANCELLED") emit("FLOW_AUTOMATION_BLOCKED","error",e.message || String(e));
