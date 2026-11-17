@@ -56,11 +56,47 @@
      return matches.length === 1 && !matches[0].disabled && matches[0].getAttribute("aria-disabled") !== "true" ? matches[0] : null;
    }, 60000, "Generate button did not become uniquely available within 60 seconds.");
  }
+ function menuItems() {
+   return [...document.querySelectorAll("button,[role=button],[role=menuitem],[role=option]")].filter(visible);
+ }
+ function exactActionMatches(pattern) {
+   return menuItems().filter(e => pattern.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
+ }
+ async function clickUniqueAction(pattern,timeout,message) {
+   const el = await waitFor({id:window.__finalAsmrTaskId,projectUrl:location.href},() => {
+     const matches = exactActionMatches(pattern);
+     return matches.length === 1 ? matches[0] : null;
+   },timeout,message);
+   el.click();
+   return el;
+ }
  async function waitAndClickDownload(task,before) {
-   return waitFor(task, () => {
-     const found = buttons().filter(e => /download/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true" && (!before.has(e) || before.get(e) === "disabled"));
-     return found.length === 1 ? found[0] : null;
-   }, 15*60*1000, "No newly available video download control appeared within 15 minutes.");
+   // Flow's documented route: generated clip > More (⋮) > Download > choose 720p video.
+   const more = await waitFor(task,() => {
+     const matches = buttons().filter(e => /^(more|more options|options|open menu)$/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
+     return matches.length === 1 ? matches[0] : null;
+   },15*60*1000,"The generated clip's More menu did not become uniquely available.");
+   assertRunning(task.id);
+   more.click();
+   const download = await waitFor(task,() => {
+     const matches = exactActionMatches(/^download(?: video)?$/);
+     return matches.length === 1 ? matches[0] : null;
+   },15000,"Flow's Download menu item did not appear after opening More.");
+   assertRunning(task.id);
+   download.click();
+   const quality = await waitFor(task,() => {
+     const matches = menuItems().filter(e => {
+       const text = label(e).replace(/\\s+/g," ").trim();
+       const enabled = !e.disabled && e.getAttribute("aria-disabled") !== "true";
+       // 720p is the guide's original-video export; never choose the 270p GIF or an upscale.
+       return enabled && /\\b720\\s*p\\b/.test(text) && !/gif|270\\s*p|1080\\s*p|4k|upscale/.test(text);
+     });
+     return matches.length === 1 ? matches[0] : null;
+   },15000,"Flow did not expose one unambiguous 720p video export option.");
+   assertRunning(task.id);
+   quality.click();
+   emit("DOWNLOAD_CLICKED","downloading","Account "+task.profileId+": selected Flow's 720p original-video export.");
+   return quality;
  }
  async function run(task) {
    if (!task?.id || startedTasks.has(task.id)) return;
