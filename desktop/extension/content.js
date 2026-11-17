@@ -165,8 +165,10 @@
      return matches.length===1?matches[0]:null;
    },15000,"Flow did not expose exactly one clickable 720p Original size video export option (the 270p Animated GIF is intentionally ignored).");
    assertRunning(task.id);
+   // Arm the per-profile download listener before clicking; this prevents an
+   // unrelated download during generation from being mistaken for this clip.
+   await emit("DOWNLOAD_ARMED","downloading","Account "+task.profileId+": selected 720p Original size; waiting for the video file.");
    quality.click();
-   emit("DOWNLOAD_CLICKED","downloading","Account "+task.profileId+": selected 720p from the new video card matching the submitted prompt.");
  }
  async function run(task) {
    if (!task?.id || startedTasks.has(task.id)) return;
