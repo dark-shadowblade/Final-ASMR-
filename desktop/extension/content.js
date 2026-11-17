@@ -73,13 +73,13 @@
  async function waitAndClickDownload(task,before) {
    // Flow's documented route: generated clip > More (⋮) > Download > choose 720p video.
    const more = await waitFor(task,() => {
-     const matches = buttons().filter(e => /^(more|more options|options|open menu)$/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
+     const matches = buttons().filter(e => /\bmore\b|\bmore options\b|\bopen menu\b/.test(label(e)) && !e.disabled && e.getAttribute("aria-disabled") !== "true");
      return matches.length === 1 ? matches[0] : null;
    },15*60*1000,"The generated clip's More menu did not become uniquely available.");
    assertRunning(task.id);
    more.click();
    const download = await waitFor(task,() => {
-     const matches = exactActionMatches(/^download(?: video)?$/);
+     const matches = exactActionMatches(/\bdownload\b/);
      return matches.length === 1 ? matches[0] : null;
    },15000,"Flow's Download menu item did not appear after opening More.");
    assertRunning(task.id);
@@ -118,10 +118,8 @@
      assertRunning(task.id);
      generate.click();
      emit("PROMPT_SUBMITTED","submitted","Account "+task.profileId+": prompt verified and Generate clicked.");
-     const download = await waitAndClickDownload(task,beforeDownloads);
+     await waitAndClickDownload(task,beforeDownloads);
      assertRunning(task.id);
-     download.click();
-     emit("DOWNLOAD_CLICKED","downloading","Account "+task.profileId+": new generated-video download control clicked.");
    } catch (e) {
      if (e.message !== "JOB_CANCELLED") emit("FLOW_AUTOMATION_BLOCKED","error",e.message || String(e));
    } finally {
