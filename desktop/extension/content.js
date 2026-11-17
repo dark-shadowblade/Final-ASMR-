@@ -148,7 +148,8 @@
        const value = (field.value ?? field.innerText ?? field.textContent ?? "").trim();
        return value === task.prompt.trim();
      },10000,"Prompt insertion could not be verified.");
-     const baseline = captureExistingCards(task.prompt);\n     const generate = await waitForGenerate(task);
+     const baseline = captureExistingCards(task.prompt);
+     const generate = await waitForGenerate(task);
      assertRunning(task.id);
      generate.click();
      emit("PROMPT_SUBMITTED","submitted","Account "+task.profileId+": prompt verified and Generate clicked.");
