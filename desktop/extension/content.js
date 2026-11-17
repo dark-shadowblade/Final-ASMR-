@@ -7,7 +7,8 @@
  const visible = e => !!e && e.isConnected && e.getClientRects().length > 0;
  const sleep = ms => new Promise(r => setTimeout(r, ms));
  const emit = (event,status,message="") => chrome.runtime.sendMessage({type:"FLOW_TASK_EVENT",event,status,message});
- const projectPath = value => { try { return new URL(value).pathname.replace(/\\/+$/,""); } catch { return ""; } };\n const sameProject = (a,b) => !!projectPath(a) && projectPath(a) === projectPath(b);
+ const projectPath = value => { try { return new URL(value).pathname.replace(/\/+$/,""); } catch { return ""; } };
+ const sameProject = (a,b) => !!projectPath(a) && projectPath(a) === projectPath(b);
  function promptField() {
    const selectors = ["div.ProseMirror[contenteditable='true']","flow-rich-text-editor [contenteditable='true']","[contenteditable='true'][role='textbox']","textarea","[role='textbox']"];
    for (const selector of selectors) {
